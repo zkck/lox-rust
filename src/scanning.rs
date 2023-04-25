@@ -37,7 +37,7 @@ impl TokenType {
 }
 
 impl Scanner {
-    pub fn new(source: String) -> Self {
+    pub fn new(source: &str) -> Self {
         Scanner {
             source: source.chars().collect(),
             tokens: vec![],
@@ -208,6 +208,8 @@ impl Scanner {
         if self.source[self.current] != expected {
             return false;
         }
+
+        // current matches, consume
         self.current += 1;
         true
     }
@@ -223,5 +225,58 @@ impl Scanner {
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tokens::Token;
+
+    use super::*;
+
+    #[test]
+    fn can_parse_braces() {
+        let scanner = Scanner::new("{}");
+        let expected = vec![
+            Token::new(TokenType::LeftBrace, "{".to_string(), 1),
+            Token::new(TokenType::RightBrace, "}".to_string(), 1),
+            Token::new(TokenType::EOF, "".to_string(), 1),
+        ];
+        assert_eq!(scanner.scan_tokens(), expected)
+    }
+
+    #[test]
+    fn can_parse_string() {
+        let scanner = Scanner::new("\"this is a string\"");
+        let expected = vec![
+            Token::new(
+                TokenType::String("this is a string".to_string()),
+                "\"this is a string\"".to_string(),
+                1,
+            ),
+            Token::new(TokenType::EOF, "".to_string(), 1),
+        ];
+        assert_eq!(scanner.scan_tokens(), expected)
+    }
+
+    #[test]
+    fn can_parse_number() {
+        let scanner = Scanner::new("123.456");
+        let expected = vec![
+            Token::new(TokenType::Number(123.456), "123.456".to_string(), 1),
+            Token::new(TokenType::EOF, "".to_string(), 1),
+        ];
+        assert_eq!(scanner.scan_tokens(), expected)
+    }
+
+    #[test]
+    fn lines_are_tracked() {
+        let scanner = Scanner::new("\n\n()");
+        let expected = vec![
+            Token::new(TokenType::LeftParen, "(".to_string(), 3),
+            Token::new(TokenType::RightParen, ")".to_string(), 3),
+            Token::new(TokenType::EOF, "".to_string(), 3),
+        ];
+        assert_eq!(scanner.scan_tokens(), expected)
     }
 }
