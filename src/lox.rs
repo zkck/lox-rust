@@ -4,6 +4,8 @@ use std::io::Write;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
+use crate::scanning::Scanner;
+
 static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 
 pub fn run_file(filepath: &str) -> io::Result<()> {
@@ -27,7 +29,10 @@ pub fn run_prompt() -> io::Result<()> {
 }
 
 fn run(string: &str) {
-    dbg!(string);
+    let scanner = Scanner::new(string);
+    for token in scanner.scan_tokens() {
+        println!("{:?}", token);
+    }
 }
 
 pub fn error(line: usize, message: &str) {
