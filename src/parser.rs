@@ -1,6 +1,7 @@
 use crate::expr;
 use crate::lox;
 use crate::tokens;
+use crate::object;
 
 struct ParseError;
 
@@ -98,11 +99,11 @@ impl Parser {
 
     fn primary(&mut self) -> Result<expr::Expr, ParseError> {
         if let Some(literal) = match &self.current().token_type {
-            tokens::TokenType::False => Some(expr::LiteralObject::False),
-            tokens::TokenType::True => Some(expr::LiteralObject::True),
-            tokens::TokenType::Nil => Some(expr::LiteralObject::Nil),
-            tokens::TokenType::Number(n) => Some(expr::LiteralObject::Number(*n)),
-            tokens::TokenType::String(s) => Some(expr::LiteralObject::String(s.to_owned())),
+            tokens::TokenType::False => Some(object::LoxObject::False),
+            tokens::TokenType::True => Some(object::LoxObject::True),
+            tokens::TokenType::Nil => Some(object::LoxObject::Nil),
+            tokens::TokenType::Number(n) => Some(object::LoxObject::Number(*n)),
+            tokens::TokenType::String(s) => Some(object::LoxObject::String(s.to_owned())),
             _ => None,
         } {
             self.advance(); // consume literal

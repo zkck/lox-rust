@@ -7,6 +7,7 @@ mod tokens;
 mod expr;
 mod parser;
 mod interpreter;
+mod object;
 
 use clap::Parser;
 

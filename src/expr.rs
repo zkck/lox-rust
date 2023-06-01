@@ -1,47 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum LiteralObject {
-    Number(f32),
-    String(String),
-    True,
-    False,
-    Nil,
-}
-
-impl From<f32> for LiteralObject {
-    fn from(f: f32) -> Self {
-        LiteralObject::Number(f)
-    }
-}
-
-impl From<bool> for LiteralObject {
-    fn from(b: bool) -> Self {
-        if b {
-            LiteralObject::True
-        } else {
-            LiteralObject::False
-        }
-    }
-}
-
-impl From<String> for LiteralObject {
-    fn from(s: String) -> Self {
-        LiteralObject::String(s)
-    }
-}
-
-impl Display for LiteralObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LiteralObject::Number(n) => write!(f, "{}", n),
-            LiteralObject::String(s) => write!(f, "{}", s),
-            LiteralObject::True => write!(f, "true"),
-            LiteralObject::False => write!(f, "false"),
-            LiteralObject::Nil => write!(f, "nil"),
-        }
-    }
-}
+use crate::object;
 
 #[derive(Clone, Copy)]
 pub enum UnaryOperator {
@@ -98,7 +57,7 @@ impl Display for BinaryOperator {
 
 #[derive(Clone)]
 pub enum Expr {
-    Literal(LiteralObject),
+    Literal(object::LoxObject),
     Unary(UnaryOperator, Box<Expr>),
     Binary(Box<Expr>, BinaryOperator, Box<Expr>),
     Grouping(Box<Expr>),
@@ -121,22 +80,22 @@ mod tests {
 
     #[test]
     fn simple_literal() {
-        let expr = Expr::Literal(LiteralObject::Nil);
+        let expr = Expr::Literal(LoxObject::Nil);
         assert_eq!(expr.to_string(), "nil")
     }
 
     #[test]
     fn simple_grouping() {
-        let expr = Expr::Grouping(Box::new(Expr::Literal(LiteralObject::Nil)));
+        let expr = Expr::Grouping(Box::new(Expr::Literal(LoxObject::Nil)));
         assert_eq!(expr.to_string(), "(nil)")
     }
 
     #[test]
     fn simple_binary() {
         let expr = Expr::Binary(
-            Box::new(Expr::Literal(LiteralObject::True)),
+            Box::new(Expr::Literal(LoxObject::True)),
             BinaryOperator::Add,
-            Box::new(Expr::Literal(LiteralObject::False)),
+            Box::new(Expr::Literal(LoxObject::False)),
         );
         assert_eq!(expr.to_string(), "(nil)")
     }
