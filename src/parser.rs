@@ -1,9 +1,11 @@
 use crate::expr;
 use crate::lox;
-use crate::tokens;
 use crate::object;
+use crate::stmt;
+use crate::tokens;
 
-struct ParseError;
+#[derive(Debug)]
+pub struct ParseError;
 
 pub struct Parser {
     tokens: Vec<tokens::Token>,
@@ -15,10 +17,21 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(mut self) -> Option<expr::Expr> {
-        match self.expression() {
-            Ok(expression) => Some(expression),
-            Err(_) => None,
+    pub fn parse(mut self) -> Result<Vec<stmt::Stmt>, ParseError> {
+        let mut statements = vec![];
+        while !self.is_at_end() {
+            statements.push(self.statement()?)
+        }
+        return Ok(statements);
+    }
+
+    fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        match self.current().token_type {
+            tokens::TokenType::Print => {
+                self.advance();
+                self.print_statement()
+            }
+            _ => self.expression_statement(),
         }
     }
 
@@ -174,5 +187,23 @@ impl Parser {
 
     fn is_at_end(&self) -> bool {
         self.current().token_type == tokens::TokenType::EOF
+    }
+
+    fn expression_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        let value = self.expression()?;
+        self.consume(
+            tokens::TokenType::Semicolon,
+            "Expected ';' after expression",
+        )?;
+        Ok(stmt::Stmt::Expression(value))
+    }
+
+    fn print_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        let value = self.expression()?;
+        self.consume(
+            tokens::TokenType::Semicolon,
+            "Expected ';' after expression",
+        )?;
+        Ok(stmt::Stmt::Print(value))
     }
 }

@@ -1,5 +1,6 @@
-use crate::object;
 use crate::expr;
+use crate::object;
+use crate::stmt;
 
 #[derive(Debug)]
 pub struct EvaluateError(&'static str);
@@ -156,5 +157,21 @@ where
             Ok(object::LoxObject::from(compare_fn(n1, n2)))
         }
         _ => Err(EvaluateError("comparison can only between two numbers")),
+    }
+}
+
+
+impl Interpret for stmt::Stmt {
+    fn evaluate(&self) -> Result<object::LoxObject, EvaluateError> {
+        match self {
+            stmt::Stmt::Expression(expr1) => {
+                expr1.evaluate()?;
+                Ok(object::LoxObject::Nil)
+            },
+            stmt::Stmt::Print(expr1) => {
+                println!("{}", expr1.evaluate()?);
+                Ok(object::LoxObject::Nil)
+            },
+        }
     }
 }

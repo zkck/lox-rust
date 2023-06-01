@@ -4,6 +4,7 @@ use std::io::Write;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
+use crate::interpreter::Interpret;
 use crate::parser::Parser;
 use crate::scanning::Scanner;
 use crate::tokens;
@@ -30,12 +31,11 @@ pub fn run_prompt() -> io::Result<()> {
 fn run(string: &str) {
     let scanner = Scanner::new(string);
     let parser = Parser::new(scanner.scan_tokens());
-    if let Some(expression) = parser.parse() {
-        if !had_error() {
-            use crate::interpreter::Interpret;
-            println!("parsed:    {}", expression);
-            println!("evaluated: {:?}", expression.evaluate());
-        }
+    match parser.parse() {
+        Ok(statements) => for statement in statements {
+            println!("{:?}", statement.evaluate())
+        },
+        Err(_error) => println!("parser error"),
     }
 }
 

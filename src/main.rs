@@ -1,13 +1,14 @@
 use std::io;
 use std::process::exit;
 
-mod lox;
-mod scanning;
-mod tokens;
 mod expr;
-mod parser;
 mod interpreter;
+mod lox;
 mod object;
+mod parser;
+mod scanning;
+mod stmt;
+mod tokens;
 
 use clap::Parser;
 
