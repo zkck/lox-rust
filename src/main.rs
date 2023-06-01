@@ -4,6 +4,9 @@ use std::process::exit;
 mod lox;
 mod scanning;
 mod tokens;
+mod expr;
+mod parser;
+mod interpreter;
 
 use clap::Parser;
 
