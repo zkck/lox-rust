@@ -1,6 +1,7 @@
 use std::io;
 use std::process::exit;
 
+mod environment;
 mod expr;
 mod interpreter;
 mod lox;

@@ -1,20 +1,24 @@
+use crate::environment;
 use crate::expr;
 use crate::object;
 use crate::stmt;
 
 #[derive(Debug)]
-pub struct EvaluateError(&'static str);
+pub struct EvaluateError(pub &'static str);
 
-pub trait Interpret {
-    fn evaluate(&self) -> Result<object::LoxObject, EvaluateError>;
+pub trait Interpret<T> {
+    fn evaluate(&self, environment: &mut environment::Environment) -> Result<T, EvaluateError>;
 }
 
-impl Interpret for expr::Expr {
-    fn evaluate(&self) -> Result<object::LoxObject, EvaluateError> {
+impl Interpret<object::LoxObject> for expr::Expr {
+    fn evaluate(
+        &self,
+        environment: &mut environment::Environment,
+    ) -> Result<object::LoxObject, EvaluateError> {
         match self {
             expr::Expr::Literal(obj) => Ok(obj.clone()),
             expr::Expr::Unary(op, val) => {
-                let val = val.evaluate()?;
+                let val = val.evaluate(environment)?;
                 match op {
                     expr::UnaryOperator::Neg => {
                         if let object::LoxObject::Number(n) = val {
@@ -46,24 +50,26 @@ impl Interpret for expr::Expr {
             }
             expr::Expr::Binary(expr1, op, expr2) => match op {
                 expr::BinaryOperator::EqualEqual => Ok(object::LoxObject::from(
-                    expr1.evaluate()? == expr2.evaluate()?,
+                    expr1.evaluate(environment)? == expr2.evaluate(environment)?,
                 )),
                 expr::BinaryOperator::BangEqual => Ok(object::LoxObject::from(
-                    expr1.evaluate()? != expr2.evaluate()?,
+                    expr1.evaluate(environment)? != expr2.evaluate(environment)?,
                 )),
-                expr::BinaryOperator::LessThan => compare_numbers(expr1, expr2, |n1, n2| n1 < n2),
+                expr::BinaryOperator::LessThan => {
+                    compare_numbers(expr1, expr2, environment, |n1, n2| n1 < n2)
+                }
                 expr::BinaryOperator::LessEqualThan => {
-                    compare_numbers(expr1, expr2, |n1, n2| n1 <= n2)
+                    compare_numbers(expr1, expr2, environment, |n1, n2| n1 <= n2)
                 }
                 expr::BinaryOperator::GreaterThan => {
-                    compare_numbers(expr1, expr2, |n1, n2| n1 > n2)
+                    compare_numbers(expr1, expr2, environment, |n1, n2| n1 > n2)
                 }
                 expr::BinaryOperator::GreaterEqualThan => {
-                    compare_numbers(expr1, expr2, |n1, n2| n1 >= n2)
+                    compare_numbers(expr1, expr2, environment, |n1, n2| n1 >= n2)
                 }
-                expr::BinaryOperator::Add => match expr1.evaluate()? {
+                expr::BinaryOperator::Add => match expr1.evaluate(environment)? {
                     object::LoxObject::Number(n1) => {
-                        if let object::LoxObject::Number(n2) = expr2.evaluate()? {
+                        if let object::LoxObject::Number(n2) = expr2.evaluate(environment)? {
                             Ok(object::LoxObject::from(n1 + n2))
                         } else {
                             Err(EvaluateError(
@@ -72,7 +78,7 @@ impl Interpret for expr::Expr {
                         }
                     }
                     object::LoxObject::String(s1) => {
-                        if let object::LoxObject::String(s2) = expr2.evaluate()? {
+                        if let object::LoxObject::String(s2) = expr2.evaluate(environment)? {
                             Ok(object::LoxObject::from([s1, s2].concat()))
                         } else {
                             Err(EvaluateError(
@@ -87,9 +93,9 @@ impl Interpret for expr::Expr {
                         Err(EvaluateError("nil cannot be an operand to addition"))
                     }
                 },
-                expr::BinaryOperator::Sub => match expr1.evaluate()? {
+                expr::BinaryOperator::Sub => match expr1.evaluate(environment)? {
                     object::LoxObject::Number(n1) => {
-                        if let object::LoxObject::Number(n2) = expr2.evaluate()? {
+                        if let object::LoxObject::Number(n2) = expr2.evaluate(environment)? {
                             Ok(object::LoxObject::from(n1 - n2))
                         } else {
                             Err(EvaluateError(
@@ -104,9 +110,9 @@ impl Interpret for expr::Expr {
                         Err(EvaluateError("subtraction operand cannot be non-number"))
                     }
                 },
-                expr::BinaryOperator::Mul => match expr1.evaluate()? {
+                expr::BinaryOperator::Mul => match expr1.evaluate(environment)? {
                     object::LoxObject::Number(n1) => {
-                        if let object::LoxObject::Number(n2) = expr2.evaluate()? {
+                        if let object::LoxObject::Number(n2) = expr2.evaluate(environment)? {
                             Ok(object::LoxObject::from(n1 * n2))
                         } else {
                             Err(EvaluateError(
@@ -121,9 +127,9 @@ impl Interpret for expr::Expr {
                         Err(EvaluateError("multiplication operand cannot be non-number"))
                     }
                 },
-                expr::BinaryOperator::Div => match expr1.evaluate()? {
+                expr::BinaryOperator::Div => match expr1.evaluate(environment)? {
                     object::LoxObject::Number(n1) => {
-                        if let object::LoxObject::Number(n2) = expr2.evaluate()? {
+                        if let object::LoxObject::Number(n2) = expr2.evaluate(environment)? {
                             Ok(object::LoxObject::from(n1 / n2))
                         } else {
                             Err(EvaluateError(
@@ -139,7 +145,10 @@ impl Interpret for expr::Expr {
                     }
                 },
             },
-            expr::Expr::Grouping(g) => g.evaluate(),
+            expr::Expr::Grouping(g) => g.evaluate(environment),
+            expr::Expr::Variable(name) => environment
+                .get(name)
+                .ok_or(EvaluateError("undefined variable")),
         }
     }
 }
@@ -147,12 +156,13 @@ impl Interpret for expr::Expr {
 fn compare_numbers<F>(
     expr1: &expr::Expr,
     expr2: &expr::Expr,
+    environment: &mut environment::Environment,
     compare_fn: F,
 ) -> Result<object::LoxObject, EvaluateError>
 where
     F: Fn(f32, f32) -> bool,
 {
-    match (expr1.evaluate()?, expr2.evaluate()?) {
+    match (expr1.evaluate(environment)?, expr2.evaluate(environment)?) {
         (object::LoxObject::Number(n1), object::LoxObject::Number(n2)) => {
             Ok(object::LoxObject::from(compare_fn(n1, n2)))
         }
@@ -160,18 +170,31 @@ where
     }
 }
 
-
-impl Interpret for stmt::Stmt {
-    fn evaluate(&self) -> Result<object::LoxObject, EvaluateError> {
+impl Interpret<()> for stmt::Stmt {
+    fn evaluate(&self, environment: &mut environment::Environment) -> Result<(), EvaluateError> {
         match self {
             stmt::Stmt::Expression(expr1) => {
-                expr1.evaluate()?;
-                Ok(object::LoxObject::Nil)
-            },
+                expr1.evaluate(environment)?;
+            }
             stmt::Stmt::Print(expr1) => {
-                println!("{}", expr1.evaluate()?);
-                Ok(object::LoxObject::Nil)
-            },
+                println!("{}", expr1.evaluate(environment)?);
+            }
+            stmt::Stmt::Var { name, initializer } => {
+                let value = match initializer {
+                    Some(expr) => expr.evaluate(environment)?,
+                    None => object::LoxObject::Nil,
+                };
+                environment.define(name.to_string(), value)
+            }
         }
+        Ok(())
     }
+}
+
+pub fn interpret(statements: &[stmt::Stmt]) -> Result<(), EvaluateError> {
+    let mut environment = environment::Environment::new();
+    for statement in statements {
+        statement.evaluate(&mut environment)?
+    }
+    Ok(())
 }

@@ -20,7 +20,9 @@ impl Parser {
     pub fn parse(mut self) -> Result<Vec<stmt::Stmt>, ParseError> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            statements.push(self.statement()?)
+            if let Some(statement) = self.declaration() {
+                statements.push(statement)
+            }
         }
         return Ok(statements);
     }
@@ -129,13 +131,20 @@ impl Parser {
                 "Expected ')' after expression",
             )?;
             Ok(expr::Expr::Grouping(Box::new(expression)))
+        } else if self.current().token_type == tokens::TokenType::Identifier {
+            let name = self.current().lexeme.clone();
+            self.advance();
+            Ok(expr::Expr::Variable(name))
         } else {
             Err(Self::error(self.current(), "Expected expression."))
         }
     }
 
-    fn advance(&mut self) {
-        self.current += 1;
+    fn advance(&mut self) -> &tokens::Token {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+        self.previous()
     }
 
     fn current(&self) -> &tokens::Token {
@@ -150,7 +159,7 @@ impl Parser {
         &mut self,
         token_type: tokens::TokenType,
         error_message: &str,
-    ) -> Result<(), ParseError> {
+    ) -> Result<&tokens::Token, ParseError> {
         if self.current().token_type == token_type {
             Ok(self.advance())
         } else {
@@ -181,7 +190,7 @@ impl Parser {
                 | tokens::TokenType::Print
                 | tokens::TokenType::Return => return,
                 _ => self.advance(),
-            }
+            };
         }
     }
 
@@ -205,5 +214,36 @@ impl Parser {
             "Expected ';' after expression",
         )?;
         Ok(stmt::Stmt::Print(value))
+    }
+
+    fn declaration(&mut self) -> Option<stmt::Stmt> {
+        let maybe_declaration = if self.current().token_type == tokens::TokenType::Var {
+            self.advance();
+            self.var_declaration()
+        } else {
+            self.statement()
+        };
+        if maybe_declaration.is_err() {
+            self.synchronize()
+        }
+        maybe_declaration.ok()
+    }
+
+    fn var_declaration(&mut self) -> Result<stmt::Stmt, ParseError> {
+        let name = self
+            .consume(tokens::TokenType::Identifier, "Expect variable name")?
+            .lexeme
+            .clone();
+        let initializer = if self.current().token_type == tokens::TokenType::Equal {
+            self.advance();
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(
+            tokens::TokenType::Semicolon,
+            "Expect ';' after variable declaration.",
+        )?;
+        Ok(stmt::Stmt::Var { name, initializer })
     }
 }

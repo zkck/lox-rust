@@ -61,6 +61,7 @@ pub enum Expr {
     Unary(UnaryOperator, Box<Expr>),
     Binary(Box<Expr>, BinaryOperator, Box<Expr>),
     Grouping(Box<Expr>),
+    Variable(String),
 }
 
 impl Display for Expr {
@@ -70,6 +71,7 @@ impl Display for Expr {
             Expr::Unary(op, expr) => write!(f, "({}, {})", op, expr),
             Expr::Binary(expr1, op, expr2) => write!(f, "({} {} {})", op, expr1, expr2),
             Expr::Grouping(expr) => write!(f, "({})", expr),
+            Expr::Variable(name) => write!(f, "${}", name),
         }
     }
 }
@@ -80,22 +82,22 @@ mod tests {
 
     #[test]
     fn simple_literal() {
-        let expr = Expr::Literal(LoxObject::Nil);
+        let expr = Expr::Literal(object::LoxObject::Nil);
         assert_eq!(expr.to_string(), "nil")
     }
 
     #[test]
     fn simple_grouping() {
-        let expr = Expr::Grouping(Box::new(Expr::Literal(LoxObject::Nil)));
+        let expr = Expr::Grouping(Box::new(Expr::Literal(object::LoxObject::Nil)));
         assert_eq!(expr.to_string(), "(nil)")
     }
 
     #[test]
     fn simple_binary() {
         let expr = Expr::Binary(
-            Box::new(Expr::Literal(LoxObject::True)),
+            Box::new(Expr::Literal(object::LoxObject::True)),
             BinaryOperator::Add,
-            Box::new(Expr::Literal(LoxObject::False)),
+            Box::new(Expr::Literal(object::LoxObject::False)),
         );
         assert_eq!(expr.to_string(), "(nil)")
     }
