@@ -27,25 +27,7 @@ impl Interpret<object::LoxObject> for expr::Expr {
                             Err(EvaluateError("cannot negate a non-number"))
                         }
                     }
-                    expr::UnaryOperator::Bang => Ok(match val {
-                        object::LoxObject::Number(n) => {
-                            if n == 0.0 {
-                                object::LoxObject::True
-                            } else {
-                                object::LoxObject::False
-                            }
-                        }
-                        object::LoxObject::String(s) => {
-                            if s == "" {
-                                object::LoxObject::True
-                            } else {
-                                object::LoxObject::False
-                            }
-                        }
-                        object::LoxObject::True => object::LoxObject::False,
-                        object::LoxObject::False => object::LoxObject::True,
-                        object::LoxObject::Nil => object::LoxObject::True,
-                    }),
+                    expr::UnaryOperator::Bang => Ok(object::LoxObject::from(!is_truthy(val))),
                 }
             }
             expr::Expr::Binary(expr1, op, expr2) => match op {
@@ -150,6 +132,16 @@ impl Interpret<object::LoxObject> for expr::Expr {
                 .get(name)
                 .ok_or(EvaluateError("undefined variable")),
         }
+    }
+}
+
+fn is_truthy(val: object::LoxObject) -> bool {
+    match val {
+        object::LoxObject::Number(n) => n != 0.0,
+        object::LoxObject::String(s) => s != "",
+        object::LoxObject::True => true,
+        object::LoxObject::False => false,
+        object::LoxObject::Nil => false,
     }
 }
 
