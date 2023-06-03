@@ -62,6 +62,7 @@ pub enum Expr {
     Binary(Box<Expr>, BinaryOperator, Box<Expr>),
     Grouping(Box<Expr>),
     Variable(String),
+    Assign(String, Box<Expr>),
 }
 
 impl Display for Expr {
@@ -72,6 +73,7 @@ impl Display for Expr {
             Expr::Binary(expr1, op, expr2) => write!(f, "({} {} {})", op, expr1, expr2),
             Expr::Grouping(expr) => write!(f, "({})", expr),
             Expr::Variable(name) => write!(f, "${}", name),
+            Expr::Assign(name, expr) => write!(f, "(=, ${}, {})", name, expr),
         }
     }
 }

@@ -20,4 +20,14 @@ impl Environment {
     pub fn get(&self, name: &str) -> Option<object::LoxObject> {
         self.values.get(name).cloned()
     }
+
+    pub fn assign(&mut self, name: &str, new_value: object::LoxObject) -> bool {
+        match self.values.get_mut(name) {
+            Some(value) => {
+                *value = new_value;
+                true
+            },
+            None => false,
+        }
+    }
 }

@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoxObject {
     Number(f32),
@@ -41,4 +40,3 @@ impl std::fmt::Display for LoxObject {
         }
     }
 }
-

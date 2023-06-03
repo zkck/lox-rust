@@ -5,7 +5,7 @@ use crate::stmt;
 use crate::tokens;
 
 #[derive(Debug)]
-pub struct ParseError;
+struct ParseError;
 
 pub struct Parser {
     tokens: Vec<tokens::Token>,
@@ -17,14 +17,14 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(mut self) -> Result<Vec<stmt::Stmt>, ParseError> {
+    pub fn parse(mut self) -> Vec<stmt::Stmt> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            if let Some(statement) = self.declaration() {
+            if let Ok(statement) = self.declaration() {
                 statements.push(statement)
             }
         }
-        return Ok(statements);
+        return statements;
     }
 
     fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
@@ -38,7 +38,22 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<expr::Expr, ParseError> {
+        let expr = self.equality()?;
+        if self.current().token_type == tokens::TokenType::Equal {
+            let equals = self.current().clone();
+            self.advance();
+            let value = self.assignment()?;
+            if let expr::Expr::Variable(name) = expr {
+                return Ok(expr::Expr::Assign(name, Box::new(value)))
+            }
+
+            Self::error(&equals, "Invalid assignment target.");
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<expr::Expr, ParseError> {
@@ -216,7 +231,7 @@ impl Parser {
         Ok(stmt::Stmt::Print(value))
     }
 
-    fn declaration(&mut self) -> Option<stmt::Stmt> {
+    fn declaration(&mut self) -> Result<stmt::Stmt, ParseError> {
         let maybe_declaration = if self.current().token_type == tokens::TokenType::Var {
             self.advance();
             self.var_declaration()
@@ -226,7 +241,7 @@ impl Parser {
         if maybe_declaration.is_err() {
             self.synchronize()
         }
-        maybe_declaration.ok()
+        maybe_declaration
     }
 
     fn var_declaration(&mut self) -> Result<stmt::Stmt, ParseError> {

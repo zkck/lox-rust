@@ -130,7 +130,15 @@ impl Interpret<object::LoxObject> for expr::Expr {
             expr::Expr::Grouping(g) => g.evaluate(environment),
             expr::Expr::Variable(name) => environment
                 .get(name)
-                .ok_or(EvaluateError("undefined variable")),
+                .ok_or(EvaluateError("Undefined variable")),
+            expr::Expr::Assign(name, expr) => {
+                let new_value = expr.evaluate(environment)?;
+                if environment.assign(name, new_value.clone()) {
+                    Ok(new_value)
+                } else {
+                    Err(EvaluateError("Undefined variable."))
+                }
+            },
         }
     }
 }
