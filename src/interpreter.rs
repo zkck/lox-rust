@@ -186,6 +186,13 @@ impl Interpret<()> for stmt::Stmt {
                 };
                 environment.define(name.to_string(), value)
             }
+            stmt::Stmt::Block(statements) => {
+                environment.new_scope();
+                for statement in statements {
+                    statement.evaluate(environment)?;
+                }
+                environment.pop_scope();
+            },
         }
         Ok(())
     }

@@ -33,6 +33,10 @@ impl Parser {
                 self.advance();
                 self.print_statement()
             }
+            tokens::TokenType::LeftBrace => {
+                self.advance();
+                self.block()
+            }
             _ => self.expression_statement(),
         }
     }
@@ -260,5 +264,14 @@ impl Parser {
             "Expect ';' after variable declaration.",
         )?;
         Ok(stmt::Stmt::Var { name, initializer })
+    }
+
+    fn block(&mut self) -> Result<stmt::Stmt, ParseError> {
+        let mut statements = vec![];
+        while self.current().token_type != tokens::TokenType::RightBrace && !self.is_at_end() {
+            statements.push(self.declaration()?)
+        }
+        self.consume(tokens::TokenType::RightBrace, "Expected '}' after block.")?;
+        Ok(stmt::Stmt::Block(statements))
     }
 }
