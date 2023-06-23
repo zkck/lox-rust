@@ -8,4 +8,9 @@ pub enum Stmt {
         name: String,
         initializer: Option<expr::Expr>,
     },
+    If {
+        condition: expr::Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
+    }
 }

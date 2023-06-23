@@ -138,7 +138,7 @@ impl Interpret<object::LoxObject> for expr::Expr {
                 } else {
                     Err(EvaluateError("Undefined variable."))
                 }
-            },
+            }
         }
     }
 }
@@ -192,7 +192,20 @@ impl Interpret<()> for stmt::Stmt {
                     statement.evaluate(environment)?;
                 }
                 environment.pop_scope();
-            },
+            }
+            stmt::Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if is_truthy(condition.evaluate(environment)?) {
+                    then_branch.evaluate(environment)?;
+                } else {
+                    if let Some(statement) = else_branch {
+                        statement.evaluate(environment)?;
+                    }
+                }
+            }
         }
         Ok(())
     }

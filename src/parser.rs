@@ -37,6 +37,10 @@ impl Parser {
                 self.advance();
                 self.block()
             }
+            tokens::TokenType::If => {
+                self.advance();
+                self.if_statement()
+            }
             _ => self.expression_statement(),
         }
     }
@@ -52,7 +56,7 @@ impl Parser {
             self.advance();
             let value = self.assignment()?;
             if let expr::Expr::Variable(name) = expr {
-                return Ok(expr::Expr::Assign(name, Box::new(value)))
+                return Ok(expr::Expr::Assign(name, Box::new(value)));
             }
 
             Self::error(&equals, "Invalid assignment target.");
@@ -273,5 +277,25 @@ impl Parser {
         }
         self.consume(tokens::TokenType::RightBrace, "Expected '}' after block.")?;
         Ok(stmt::Stmt::Block(statements))
+    }
+
+    fn if_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.consume(tokens::TokenType::LeftParen, "Expect '(' after if.")?;
+        let condition = self.expression()?;
+        self.consume(tokens::TokenType::RightParen, "Expect ')' after if.")?;
+
+        let then_branch = self.statement()?;
+        let else_branch = if self.current().token_type == tokens::TokenType::Else {
+            self.advance();
+            Some(self.statement()?)
+        } else {
+            None
+        };
+
+        Ok(stmt::Stmt::If {
+            condition,
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(Box::new),
+        })
     }
 }
