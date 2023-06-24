@@ -30,8 +30,7 @@ pub fn run_prompt() -> io::Result<()> {
 
 fn run(string: &str) {
     let tokens = Scanner::new(string).scan_tokens();
-    let parser = Parser::new(tokens);
-    let statements = parser.parse();
+    let statements = Parser::new(tokens).parse();
     if !had_error() {
         interpreter::interpret(&statements)
             .unwrap_or_else(|interpreter::EvaluateError(message)| error(0, &message))
