@@ -12,5 +12,6 @@ pub enum Stmt {
         condition: expr::Expr,
         then_branch: Box<Stmt>,
         else_branch: Option<Box<Stmt>>,
-    }
+    },
+    While(expr::Expr, Box<Stmt>),
 }

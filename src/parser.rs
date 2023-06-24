@@ -41,6 +41,10 @@ impl Parser {
                 self.advance();
                 self.if_statement()
             }
+            tokens::TokenType::While => {
+                self.advance();
+                self.while_statement()
+            }
             _ => self.expression_statement(),
         }
     }
@@ -323,5 +327,13 @@ impl Parser {
             )
         }
         Ok(expr)
+    }
+
+    fn while_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.consume(tokens::TokenType::LeftParen, "Expect '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(tokens::TokenType::RightParen, "Expect ')' after 'while'.")?;
+        let body = self.statement()?;
+        Ok(stmt::Stmt::While(condition, Box::new(body)))
     }
 }

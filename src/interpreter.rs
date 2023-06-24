@@ -224,6 +224,11 @@ impl Interpret<()> for stmt::Stmt {
                     }
                 }
             }
+            stmt::Stmt::While(condition, body) => {
+                while is_truthy(&condition.evaluate(environment)?) {
+                    body.evaluate(environment)?;
+                }
+            },
         }
         Ok(())
     }
