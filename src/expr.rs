@@ -3,6 +3,22 @@ use std::fmt::Display;
 use crate::object;
 
 #[derive(Clone, Copy)]
+pub enum LogicalOperator {
+    Or,
+    And,
+}
+
+impl Display for LogicalOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            LogicalOperator::Or => "or",
+            LogicalOperator::And => "and",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Clone, Copy)]
 pub enum UnaryOperator {
     Neg,
     Bang,
@@ -35,8 +51,6 @@ pub enum BinaryOperator {
     Div,
 }
 
-impl BinaryOperator {}
-
 impl Display for BinaryOperator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
@@ -60,6 +74,7 @@ pub enum Expr {
     Literal(object::LoxObject),
     Unary(UnaryOperator, Box<Expr>),
     Binary(Box<Expr>, BinaryOperator, Box<Expr>),
+    Logical(Box<Expr>, LogicalOperator, Box<Expr>),
     Grouping(Box<Expr>),
     Variable(String),
     Assign(String, Box<Expr>),
@@ -69,11 +84,12 @@ impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expr::Literal(obj) => write!(f, "{}", obj),
-            Expr::Unary(op, expr) => write!(f, "({}, {})", op, expr),
+            Expr::Unary(op, expr) => write!(f, "({} {})", op, expr),
             Expr::Binary(expr1, op, expr2) => write!(f, "({} {} {})", op, expr1, expr2),
             Expr::Grouping(expr) => write!(f, "({})", expr),
             Expr::Variable(name) => write!(f, "${}", name),
-            Expr::Assign(name, expr) => write!(f, "(=, ${}, {})", name, expr),
+            Expr::Assign(name, expr) => write!(f, "(= ${}, {})", name, expr),
+            Expr::Logical(expr1, op, expr2) => write!(f, "({} {} {})", op, expr1, expr2),
         }
     }
 }

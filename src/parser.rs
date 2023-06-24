@@ -50,7 +50,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<expr::Expr, ParseError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
         if self.current().token_type == tokens::TokenType::Equal {
             let equals = self.current().clone();
             self.advance();
@@ -297,5 +297,31 @@ impl Parser {
             then_branch: Box::new(then_branch),
             else_branch: else_branch.map(Box::new),
         })
+    }
+
+    fn or(&mut self) -> Result<expr::Expr, ParseError> {
+        let mut expr = self.and()?;
+        while self.current().token_type == tokens::TokenType::Or {
+            self.advance();
+            expr = expr::Expr::Logical(
+                Box::new(expr),
+                expr::LogicalOperator::Or,
+                Box::new(self.and()?),
+            )
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<expr::Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while self.current().token_type == tokens::TokenType::And {
+            self.advance();
+            expr = expr::Expr::Logical(
+                Box::new(expr),
+                expr::LogicalOperator::And,
+                Box::new(self.equality()?),
+            )
+        }
+        Ok(expr)
     }
 }

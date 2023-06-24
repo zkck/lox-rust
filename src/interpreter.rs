@@ -27,7 +27,7 @@ impl Interpret<object::LoxObject> for expr::Expr {
                             Err(EvaluateError("cannot negate a non-number"))
                         }
                     }
-                    expr::UnaryOperator::Bang => Ok(object::LoxObject::from(!is_truthy(val))),
+                    expr::UnaryOperator::Bang => Ok(object::LoxObject::from(!is_truthy(&val))),
                 }
             }
             expr::Expr::Binary(expr1, op, expr2) => match op {
@@ -139,13 +139,31 @@ impl Interpret<object::LoxObject> for expr::Expr {
                     Err(EvaluateError("Undefined variable."))
                 }
             }
+            expr::Expr::Logical(expr1, op, expr2) => {
+                let evaluated = expr1.evaluate(environment)?;
+                match op {
+                    expr::LogicalOperator::Or => {
+                        if is_truthy(&evaluated) {
+                            // first statement was true, short-circuit
+                            return Ok(evaluated);
+                        }
+                    }
+                    expr::LogicalOperator::And => {
+                        if !is_truthy(&evaluated) {
+                            // first statement was false, short-circuit
+                            return Ok(evaluated);
+                        }
+                    }
+                };
+                expr2.evaluate(environment)
+            }
         }
     }
 }
 
-fn is_truthy(val: object::LoxObject) -> bool {
+fn is_truthy(val: &object::LoxObject) -> bool {
     match val {
-        object::LoxObject::Number(n) => n != 0.0,
+        object::LoxObject::Number(n) => *n != 0.0,
         object::LoxObject::String(s) => s != "",
         object::LoxObject::True => true,
         object::LoxObject::False => false,
@@ -198,7 +216,7 @@ impl Interpret<()> for stmt::Stmt {
                 then_branch,
                 else_branch,
             } => {
-                if is_truthy(condition.evaluate(environment)?) {
+                if is_truthy(&condition.evaluate(environment)?) {
                     then_branch.evaluate(environment)?;
                 } else {
                     if let Some(statement) = else_branch {
