@@ -45,6 +45,10 @@ impl Parser {
                 self.advance();
                 self.while_statement()
             }
+            tokens::TokenType::For => {
+                self.advance();
+                self.for_statement()
+            }
             _ => self.expression_statement(),
         }
     }
@@ -335,5 +339,56 @@ impl Parser {
         self.consume(tokens::TokenType::RightParen, "Expect ')' after 'while'.")?;
         let body = self.statement()?;
         Ok(stmt::Stmt::While(condition, Box::new(body)))
+    }
+
+    fn for_statement(&mut self) -> Result<stmt::Stmt, ParseError> {
+        self.consume(tokens::TokenType::LeftParen, "Expect '(' after 'for'.")?;
+
+        let initializer = if self.matches(tokens::TokenType::Semicolon) {
+            None
+        } else if self.matches(tokens::TokenType::Var) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+
+        let condition = if self.current().token_type == tokens::TokenType::Semicolon {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+        self.consume(tokens::TokenType::Semicolon, "Expect ';' after condition.")?;
+
+        let increment = if self.current().token_type == tokens::TokenType::RightParen {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+        self.consume(tokens::TokenType::RightParen, "Expect ')' after increment.")?;
+
+        let mut body = self.statement()?;
+
+        if let Some(expression) = increment {
+            body = stmt::Stmt::Block(vec![body, stmt::Stmt::Expression(expression)])
+        }
+
+        body = stmt::Stmt::While(
+            condition.unwrap_or(expr::Expr::Literal(object::LoxObject::True)),
+            Box::new(body),
+        );
+
+        if let Some(statement) = initializer {
+            body = stmt::Stmt::Block(vec![statement, body]);
+        }
+
+        Ok(body)
+    }
+
+    fn matches(&mut self, token_type: tokens::TokenType) -> bool {
+        let is_match = self.current().token_type == token_type;
+        if is_match {
+            self.advance();
+        }
+        return is_match;
     }
 }
