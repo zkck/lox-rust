@@ -24,7 +24,7 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier,
+    Identifier(String),
     String(String),
     Number(f32),
 
@@ -57,11 +57,7 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(
-        token_type: TokenType,
-        lexeme: String,
-        line: usize,
-    ) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, line: usize) -> Self {
         Token {
             token_type,
             lexeme,

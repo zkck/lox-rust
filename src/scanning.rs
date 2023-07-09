@@ -31,7 +31,7 @@ impl TokenType {
             "true" => TokenType::True,
             "var" => TokenType::Var,
             "while" => TokenType::While,
-            _ => TokenType::Identifier,
+            s => TokenType::Identifier(s.to_string()),
         }
     }
 }
