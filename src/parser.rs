@@ -213,7 +213,9 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<stmt::Stmt, ParseError> {
-        let name = self.match_identifier().ok_or_else(|| self.error("Expect variable name."))?;
+        let name = self
+            .match_identifier()
+            .ok_or_else(|| self.error("Expect variable name."))?;
         let initializer = if self.match_token(tokens::TokenType::Equal) {
             Some(self.expression()?)
         } else {
@@ -339,9 +341,9 @@ impl Parser {
 
     fn match_identifier(&mut self) -> Option<String> {
         if let tokens::TokenType::Identifier(s) = &self.current().token_type {
-            let s = s.to_string();
+            let some_string = Some(s.to_string());
             self.advance();
-            Some(s)
+            some_string
         } else {
             None
         }
