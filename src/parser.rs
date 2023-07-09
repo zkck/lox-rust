@@ -28,29 +28,22 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<stmt::Stmt, ParseError> {
-        match self.current().token_type {
-            tokens::TokenType::Print => {
-                self.advance();
-                self.print_statement()
-            }
-            tokens::TokenType::LeftBrace => {
-                self.advance();
-                self.block()
-            }
-            tokens::TokenType::If => {
-                self.advance();
-                self.if_statement()
-            }
-            tokens::TokenType::While => {
-                self.advance();
-                self.while_statement()
-            }
-            tokens::TokenType::For => {
-                self.advance();
-                self.for_statement()
-            }
-            _ => self.expression_statement(),
+        if self.matches(tokens::TokenType::Print) {
+            return self.print_statement();
         }
+        if self.matches(tokens::TokenType::LeftBrace) {
+            return self.block();
+        }
+        if self.matches(tokens::TokenType::If) {
+            return self.if_statement();
+        }
+        if self.matches(tokens::TokenType::While) {
+            return self.while_statement();
+        }
+        if self.matches(tokens::TokenType::For) {
+            return self.for_statement();
+        }
+        self.expression_statement()
     }
 
     fn expression(&mut self) -> Result<expr::Expr, ParseError> {
@@ -74,12 +67,7 @@ impl Parser {
 
     fn equality(&mut self) -> Result<expr::Expr, ParseError> {
         let mut lhs = self.comparison()?;
-        while let Some(operator) = match self.current().token_type {
-            tokens::TokenType::BangEqual => Some(expr::BinaryOperator::BangEqual),
-            tokens::TokenType::EqualEqual => Some(expr::BinaryOperator::EqualEqual),
-            _ => None,
-        } {
-            self.advance();
+        while let Some(operator) = self.matches_fn(translate_equality) {
             let rhs = self.comparison()?;
             lhs = expr::Expr::Binary(Box::new(lhs), operator, Box::new(rhs));
         }
@@ -87,33 +75,21 @@ impl Parser {
     }
 
     fn comparison(&mut self) -> Result<expr::Expr, ParseError> {
-        let mut acc = self.term()?;
-        while let Some(operator) = match self.current().token_type {
-            tokens::TokenType::Greater => Some(expr::BinaryOperator::GreaterThan),
-            tokens::TokenType::GreaterEqual => Some(expr::BinaryOperator::GreaterEqualThan),
-            tokens::TokenType::Less => Some(expr::BinaryOperator::LessThan),
-            tokens::TokenType::LessEqual => Some(expr::BinaryOperator::LessEqualThan),
-            _ => None,
-        } {
-            self.advance(); // consume operator
-            let next = self.term()?;
-            acc = expr::Expr::Binary(Box::new(acc), operator, Box::new(next));
+        let mut lhs = self.term()?;
+        while let Some(operator) = self.matches_fn(translate_comparison) {
+            let rhs = self.term()?;
+            lhs = expr::Expr::Binary(Box::new(lhs), operator, Box::new(rhs));
         }
-        Ok(acc)
+        Ok(lhs)
     }
 
     fn term(&mut self) -> Result<expr::Expr, ParseError> {
-        let mut acc = self.factor()?;
-        while let Some(operator) = match self.current().token_type {
-            tokens::TokenType::Minus => Some(expr::BinaryOperator::Sub),
-            tokens::TokenType::Plus => Some(expr::BinaryOperator::Add),
-            _ => None,
-        } {
-            self.advance();
-            let next = self.factor()?;
-            acc = expr::Expr::Binary(Box::new(acc), operator, Box::new(next));
+        let mut lhs = self.factor()?;
+        while let Some(operator) = self.matches_fn(translate_term) {
+            let rhs = self.factor()?;
+            lhs = expr::Expr::Binary(Box::new(lhs), operator, Box::new(rhs));
         }
-        Ok(acc)
+        Ok(lhs)
     }
 
     fn factor(&mut self) -> Result<expr::Expr, ParseError> {
@@ -131,12 +107,7 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<expr::Expr, ParseError> {
-        if let Some(operator) = match self.current().token_type {
-            tokens::TokenType::Bang => Some(expr::UnaryOperator::Bang),
-            tokens::TokenType::Minus => Some(expr::UnaryOperator::Neg),
-            _ => None,
-        } {
-            self.advance(); // consume operator
+        if let Some(operator) = self.matches_fn(translate_unary) {
             Ok(expr::Expr::Unary(operator, Box::new(self.unary()?)))
         } else {
             self.primary()
@@ -144,15 +115,7 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<expr::Expr, ParseError> {
-        if let Some(literal) = match &self.current().token_type {
-            tokens::TokenType::False => Some(object::LoxObject::False),
-            tokens::TokenType::True => Some(object::LoxObject::True),
-            tokens::TokenType::Nil => Some(object::LoxObject::Nil),
-            tokens::TokenType::Number(n) => Some(object::LoxObject::Number(*n)),
-            tokens::TokenType::String(s) => Some(object::LoxObject::String(s.to_owned())),
-            _ => None,
-        } {
-            self.advance(); // consume literal
+        if let Some(literal) = self.matches_fn(translate_literal) {
             Ok(expr::Expr::Literal(literal))
         } else if self.current().token_type == tokens::TokenType::LeftParen {
             self.advance(); // consume paren
@@ -390,5 +353,60 @@ impl Parser {
             self.advance();
         }
         return is_match;
+    }
+
+    fn matches_fn<T, F>(&mut self, translate: F) -> Option<T>
+    where
+        F: Fn(&tokens::TokenType) -> Option<T>,
+    {
+        let translated = translate(&self.current().token_type);
+        if translated.is_some() {
+            self.advance();
+        }
+        return translated;
+    }
+}
+
+fn translate_comparison(token: &tokens::TokenType) -> Option<expr::BinaryOperator> {
+    match token {
+        tokens::TokenType::Greater => Some(expr::BinaryOperator::GreaterThan),
+        tokens::TokenType::GreaterEqual => Some(expr::BinaryOperator::GreaterEqualThan),
+        tokens::TokenType::Less => Some(expr::BinaryOperator::LessThan),
+        tokens::TokenType::LessEqual => Some(expr::BinaryOperator::LessEqualThan),
+        _ => None,
+    }
+}
+fn translate_equality(token: &tokens::TokenType) -> Option<expr::BinaryOperator> {
+    match token {
+        tokens::TokenType::BangEqual => Some(expr::BinaryOperator::BangEqual),
+        tokens::TokenType::EqualEqual => Some(expr::BinaryOperator::EqualEqual),
+        _ => None,
+    }
+}
+
+fn translate_literal(token: &tokens::TokenType) -> Option<object::LoxObject> {
+    match token {
+        tokens::TokenType::False => Some(object::LoxObject::False),
+        tokens::TokenType::True => Some(object::LoxObject::True),
+        tokens::TokenType::Nil => Some(object::LoxObject::Nil),
+        tokens::TokenType::Number(n) => Some(object::LoxObject::Number(*n)),
+        tokens::TokenType::String(s) => Some(object::LoxObject::String(s.to_owned())),
+        _ => None,
+    }
+}
+
+fn translate_unary(token: &tokens::TokenType) -> Option<expr::UnaryOperator> {
+    match token {
+        tokens::TokenType::Bang => Some(expr::UnaryOperator::Bang),
+        tokens::TokenType::Minus => Some(expr::UnaryOperator::Neg),
+        _ => None,
+    }
+}
+
+fn translate_term(token: &tokens::TokenType) -> Option<expr::BinaryOperator> {
+    match token {
+        tokens::TokenType::Minus => Some(expr::BinaryOperator::Sub),
+        tokens::TokenType::Plus => Some(expr::BinaryOperator::Add),
+        _ => None,
     }
 }
