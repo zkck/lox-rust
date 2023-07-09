@@ -94,12 +94,7 @@ impl Parser {
 
     fn factor(&mut self) -> Result<expr::Expr, ParseError> {
         let mut acc = self.unary()?;
-        while let Some(operator) = match self.current().token_type {
-            tokens::TokenType::Star => Some(expr::BinaryOperator::Mul),
-            tokens::TokenType::Slash => Some(expr::BinaryOperator::Div),
-            _ => None,
-        } {
-            self.advance(); // comsume operator
+        while let Some(operator) = self.matches_fn(translate_factor) {
             let next = self.unary()?;
             acc = expr::Expr::Binary(Box::new(acc), operator, Box::new(next));
         }
@@ -116,16 +111,17 @@ impl Parser {
 
     fn primary(&mut self) -> Result<expr::Expr, ParseError> {
         if let Some(literal) = self.matches_fn(translate_literal) {
-            Ok(expr::Expr::Literal(literal))
-        } else if self.current().token_type == tokens::TokenType::LeftParen {
-            self.advance(); // consume paren
+            return Ok(expr::Expr::Literal(literal));
+        }
+        if self.matches(tokens::TokenType::LeftParen) {
             let expression = self.expression()?;
             self.consume(
                 tokens::TokenType::RightParen,
                 "Expected ')' after expression",
             )?;
-            Ok(expr::Expr::Grouping(Box::new(expression)))
-        } else if self.current().token_type == tokens::TokenType::Identifier {
+            return Ok(expr::Expr::Grouping(Box::new(expression)));
+        }
+        if self.current().token_type == tokens::TokenType::Identifier {
             let name = self.current().lexeme.clone();
             self.advance();
             Ok(expr::Expr::Variable(name))
@@ -211,8 +207,7 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> Result<stmt::Stmt, ParseError> {
-        let maybe_declaration = if self.current().token_type == tokens::TokenType::Var {
-            self.advance();
+        let maybe_declaration = if self.matches(tokens::TokenType::Var) {
             self.var_declaration()
         } else {
             self.statement()
@@ -228,8 +223,7 @@ impl Parser {
             .consume(tokens::TokenType::Identifier, "Expect variable name")?
             .lexeme
             .clone();
-        let initializer = if self.current().token_type == tokens::TokenType::Equal {
-            self.advance();
+        let initializer = if self.matches(tokens::TokenType::Equal) {
             Some(self.expression()?)
         } else {
             None
@@ -256,8 +250,7 @@ impl Parser {
         self.consume(tokens::TokenType::RightParen, "Expect ')' after if.")?;
 
         let then_branch = self.statement()?;
-        let else_branch = if self.current().token_type == tokens::TokenType::Else {
-            self.advance();
+        let else_branch = if self.matches(tokens::TokenType::Else) {
             Some(self.statement()?)
         } else {
             None
@@ -272,8 +265,7 @@ impl Parser {
 
     fn or(&mut self) -> Result<expr::Expr, ParseError> {
         let mut expr = self.and()?;
-        while self.current().token_type == tokens::TokenType::Or {
-            self.advance();
+        while self.matches(tokens::TokenType::Or) {
             expr = expr::Expr::Logical(
                 Box::new(expr),
                 expr::LogicalOperator::Or,
@@ -285,8 +277,7 @@ impl Parser {
 
     fn and(&mut self) -> Result<expr::Expr, ParseError> {
         let mut expr = self.equality()?;
-        while self.current().token_type == tokens::TokenType::And {
-            self.advance();
+        while self.matches(tokens::TokenType::And) {
             expr = expr::Expr::Logical(
                 Box::new(expr),
                 expr::LogicalOperator::And,
@@ -407,6 +398,14 @@ fn translate_term(token: &tokens::TokenType) -> Option<expr::BinaryOperator> {
     match token {
         tokens::TokenType::Minus => Some(expr::BinaryOperator::Sub),
         tokens::TokenType::Plus => Some(expr::BinaryOperator::Add),
+        _ => None,
+    }
+}
+
+fn translate_factor(token: &tokens::TokenType) -> Option<expr::BinaryOperator> {
+    match token {
+        tokens::TokenType::Star => Some(expr::BinaryOperator::Mul),
+        tokens::TokenType::Slash => Some(expr::BinaryOperator::Div),
         _ => None,
     }
 }
