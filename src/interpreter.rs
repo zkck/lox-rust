@@ -233,11 +233,3 @@ impl Interpret<()> for stmt::Stmt {
         Ok(())
     }
 }
-
-pub fn interpret(statements: &[stmt::Stmt]) -> Result<(), EvaluateError> {
-    let mut environment = environment::Environment::new();
-    for statement in statements {
-        statement.evaluate(&mut environment)?
-    }
-    Ok(())
-}
