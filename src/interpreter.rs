@@ -157,6 +157,7 @@ impl Interpret<object::LoxObject> for expr::Expr {
                 };
                 expr2.evaluate(environment)
             }
+            expr::Expr::Call { callee: _, arguments: _ } => todo!(),
         }
     }
 }

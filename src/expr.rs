@@ -75,6 +75,10 @@ pub enum Expr {
     Unary(UnaryOperator, Box<Expr>),
     Binary(Box<Expr>, BinaryOperator, Box<Expr>),
     Logical(Box<Expr>, LogicalOperator, Box<Expr>),
+    Call{
+        callee: Box<Expr>,
+        arguments: Vec<Expr>,
+    },
     Grouping(Box<Expr>),
     Variable(String),
     Assign(String, Box<Expr>),
@@ -90,6 +94,7 @@ impl Display for Expr {
             Expr::Variable(name) => write!(f, "${}", name),
             Expr::Assign(name, expr) => write!(f, "(= ${}, {})", name, expr),
             Expr::Logical(expr1, op, expr2) => write!(f, "({} {} {})", op, expr1, expr2),
+            Expr::Call { callee: _, arguments: _ } => todo!(),
         }
     }
 }

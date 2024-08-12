@@ -102,7 +102,7 @@ impl Parser {
         if let Some(operator) = self.match_fn(translate_unary) {
             Ok(expr::Expr::Unary(operator, Box::new(self.unary()?)))
         } else {
-            self.primary()
+            self.call()
         }
     }
 
@@ -358,6 +358,39 @@ impl Parser {
             self.advance();
         }
         return translated;
+    }
+
+    fn call(&mut self) -> Result<expr::Expr, ParseError> {
+        let mut expression = self.primary()?;
+        loop {
+            if self.match_token(tokens::TokenType::LeftParen) {
+                expression = self.complete_call(expression)?;
+            } else {
+                break;
+            }
+        }
+        todo!()
+    }
+
+    /// Given a callee, parses the comma-separated arguments.
+    ///
+    /// The left parenthesis has already been parsed at this point, and this function will consume
+    /// the right parenthesis.
+    fn complete_call(&mut self, callee: expr::Expr) -> Result<expr::Expr, ParseError> {
+        let mut arguments: Vec<expr::Expr> = vec![];
+        if self.current().token_type != tokens::TokenType::RightParen {
+            loop {
+                if arguments.len() >= 255 {
+                    return Err(self.error("Can't have more than 255 arguments."))
+                }
+                arguments.push(self.expression()?);
+                if !self.match_token(tokens::TokenType::Comma) {
+                    break
+                }
+            }
+        }
+        self.consume(tokens::TokenType::RightParen, "Expect ')' after arguments")?;
+        Ok(expr::Expr::Call { callee: Box::new(callee), arguments })
     }
 }
 
