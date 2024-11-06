@@ -122,6 +122,6 @@ mod tests {
             BinaryOperator::Add,
             Box::new(Expr::Literal(object::LoxObject::False)),
         );
-        assert_eq!(expr.to_string(), "(nil)")
+        assert_eq!(expr.to_string(), "(+ true false)")
     }
 }

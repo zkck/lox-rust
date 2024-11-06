@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq)]
-pub enum TokenType {
+pub enum TokenType<'a> {
     // Single-character tokens.
     LeftParen,
     RightParen,
@@ -24,8 +24,8 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier(String),
-    String(String),
+    Identifier(&'a str),
+    String(&'a str),
     Number(f32),
 
     // Keywords.
@@ -50,14 +50,14 @@ pub enum TokenType {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token {
-    pub token_type: TokenType,
-    pub lexeme: String,
+pub struct Token<'a> {
+    pub token_type: TokenType<'a>,
+    pub lexeme: &'a str,
     pub line: usize,
 }
 
-impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, line: usize) -> Self {
+impl Token<'_> {
+    pub fn new<'a>(token_type: TokenType<'a>, lexeme: &'a str, line: usize) -> Token<'a> {
         Token {
             token_type,
             lexeme,

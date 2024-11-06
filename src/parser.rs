@@ -7,13 +7,13 @@ use crate::tokens;
 #[derive(Debug)]
 struct ParseError;
 
-pub struct Parser {
-    tokens: Vec<tokens::Token>,
+pub struct Parser<'a> {
+    tokens: Vec<tokens::Token<'a>>,
     current: usize,
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<tokens::Token>) -> Self {
+impl Parser<'_> {
+    pub fn new(tokens: Vec<tokens::Token>) -> Parser {
         Parser { tokens, current: 0 }
     }
 
@@ -417,7 +417,7 @@ fn translate_literal(token: &tokens::TokenType) -> Option<object::LoxObject> {
         tokens::TokenType::True => Some(object::LoxObject::True),
         tokens::TokenType::Nil => Some(object::LoxObject::Nil),
         tokens::TokenType::Number(n) => Some(object::LoxObject::Number(*n)),
-        tokens::TokenType::String(s) => Some(object::LoxObject::String(s.to_owned())),
+        tokens::TokenType::String(s) => Some(object::LoxObject::String(s.to_string())),
         _ => None,
     }
 }
