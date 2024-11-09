@@ -6,7 +6,7 @@ use crate::tokens::TokenType;
 
 pub struct Scanner<'s> {
     source: &'s str,
-    iter: prefetch::Prefetched<CharIndices<'s>, 2>,
+    iter: prepeek::Prepeek<CharIndices<'s>, 2>,
     tokens: Vec<crate::tokens::Token<'s>>,
     start: usize,
     line: usize,
@@ -40,7 +40,7 @@ impl<'s> Scanner<'s> {
     pub fn new(source: &'s str) -> Scanner<'s> {
         Scanner {
             source,
-            iter: prefetch::Prefetched::new(source.char_indices()),
+            iter: prepeek::Prepeek::new(source.char_indices()),
             tokens: vec![],
             start: 0,
             line: 1,

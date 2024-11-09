@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.2.4", features = ["derive"] }
-prefetch = { version = "0.1.0", path = "./prefetch" }
+prepeek = "0.1.2"
